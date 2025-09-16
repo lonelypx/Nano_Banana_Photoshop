@@ -1,4 +1,4 @@
-// AI Image Edit Script - Complete Implementation
+// AI Image Edit Script - Complete Implementation (FIXED)
 // Replicates the functionality of commercial AI editing scripts for Photoshop
 
 #target photoshop
@@ -43,6 +43,23 @@ var settings = {
 
 var CONFIG_FILE = Folder.userData + "/AIEdit_Settings.json";
 var TEMP_FOLDER = Folder.temp + "/PhotoshopAIEdit/";
+
+// Helper function to check if model has feature
+function modelHasFeature(modelKey, feature) {
+    try {
+        var model = MODELS[modelKey];
+        if (model && model.features) {
+            for (var i = 0; i < model.features.length; i++) {
+                if (model.features[i] === feature) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } catch(e) {
+        return false;
+    }
+}
 
 // Initialize
 function initialize() {
@@ -228,12 +245,13 @@ function showMainDialog() {
     
     var colorCheck, refImageGroup, refImagePath;
     
-    if (MODELS[settings.selectedModel].features.indexOf("foreground_color") >= 0) {
+    // Use helper function instead of direct indexOf
+    if (modelHasFeature(settings.selectedModel, "foreground_color")) {
         colorCheck = optionsPanel.add("checkbox", undefined, "Use current foreground color");
         colorCheck.value = settings.options.useForegroundColor;
     }
     
-    if (MODELS[settings.selectedModel].features.indexOf("reference_image") >= 0) {
+    if (modelHasFeature(settings.selectedModel, "reference_image")) {
         refImageGroup = optionsPanel.add("group");
         refImageGroup.add("statictext", undefined, "Reference:");
         var refBtn = refImageGroup.add("button", undefined, "Choose Image...");
@@ -470,20 +488,15 @@ function executeAPICall(requestFile, outputPath, progressBar, progressText) {
             command = '"' + helperScript + '"';
         }
         
-        // Simulate progress
-        var fakeProgress = 30;
-        var progressTimer = $.setInterval(function() {
-            if (fakeProgress < 80) {
-                fakeProgress += Math.random() * 10;
-                progressBar.value = Math.min(fakeProgress, 80);
-            }
-        }, 1000);
+        // Update progress before API call
+        progressBar.value = 50;
+        progressText.text = "Calling AI API...";
         
         // Execute
         app.system(command);
         
-        // Stop progress simulation
-        $.clearInterval(progressTimer);
+        // Update progress after API call
+        progressBar.value = 80;
         
         // Check if output was created
         return (new File(outputPath)).exists;
